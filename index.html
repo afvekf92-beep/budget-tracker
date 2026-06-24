@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Контроль расходов</title>
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase (бесплатная облачная база данных для синхронизации между устройствами) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Экран ввода кода синхронизации (показывается, если код ещё не задан на этом устройстве) -->
+  <div class="modal-overlay" id="syncOverlay">
+    <div class="modal">
+      <h3>Код синхронизации</h3>
+      <p class="dev-text" style="margin-top:-6px;">
+        Придумай любой код (например, своё слово или цифры) и введи его на всех устройствах одинаково —
+        тогда данные будут общими.
+      </p>
+      <label class="field-label">Твой код</label>
+      <input type="text" id="syncCodeInput" placeholder="например: maxim-budget-2025">
+      <div class="modal-actions">
+        <button class="btn-primary" id="btnSyncConnect">Подключить</button>
+      </div>
+      <p class="dev-text" id="syncStatus" style="margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <div class="app">
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-page="expenses">Расходы</button>
+      <button class="tab-btn" data-page="habits">Привычки</button>
+      <button class="tab-btn" data-page="dev">В разработке</button>
+      <button class="tab-btn" id="btnSyncStatus" title="Синхронизация">☁ —</button>
+    </nav>
+
+    <!-- ================= СТРАНИЦА: РАСХОДЫ ================= -->
+    <section class="page active" id="page-expenses">
+      <div class="grid">
+
+        <!-- Планирование -->
+        <div class="card">
+          <h2>Планирование</h2>
+
+          <label class="field-label">Количество дней</label>
+          <div class="input-row">
+            <input type="number" id="inputDays" min="1" value="19">
+            <span class="suffix">дней</span>
+          </div>
+
+          <label class="field-label">Общая сумма на эти дни</label>
+          <div class="input-row">
+            <input type="number" id="inputTotal" min="0" value="170">
+            <span class="suffix">₽</span>
+          </div>
+
+          <button class="btn-secondary" id="btnApplyPlan">Применить план</button>
+
+          <hr>
+
+          <div class="stat-block">
+            <span class="stat-label">Сумма на день</span>
+            <span class="stat-value" id="dayBudgetView">0 ₽</span>
+          </div>
+
+          <label class="field-label">Сколько потратил сегодня</label>
+          <div class="input-row">
+            <input type="number" id="inputSpentToday" min="0" value="0">
+            <span class="suffix">₽</span>
+          </div>
+
+          <div class="stat-block">
+            <span class="stat-label">Осталось на день</span>
+            <span class="stat-value accent" id="remainingTodayView">0 ₽</span>
+          </div>
+
+          <button class="btn-primary" id="btnEndDay">День закончился</button>
+        </div>
+
+        <!-- Дней осталось + вертикальная шкала -->
+        <div class="col-mid">
+          <div class="card center-card">
+            <h2>Дней осталось</h2>
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring">
+                <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                <circle class="ring-fg" id="daysRing" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="ring-text">
+                <span class="ring-number" id="daysLeftView">19</span>
+                <span class="ring-label">дней</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="vbar-wrap">
+              <span class="vbar-top-label" id="vbarMaxLabel">19</span>
+              <div class="vbar-track">
+                <div class="vbar-fill" id="vbarFill"></div>
+              </div>
+              <span class="vbar-bottom-label">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Главная цель + пополнения -->
+        <div class="col-right">
+          <div class="card center-card">
+            <h2>Главная цель</h2>
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring">
+                <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                <circle class="ring-fg goal" id="goalRing" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="ring-text">
+                <span class="ring-number" id="goalTargetView">5000</span>
+                <span class="ring-label">€</span>
+              </div>
+            </div>
+            <p class="goal-sub" id="goalProgressText">0 / 5000 € · 0%</p>
+            <div class="input-row small-row">
+              <input type="number" id="inputGoalTarget" placeholder="Изменить цель (€)">
+              <button class="btn-secondary small" id="btnSetGoal">OK</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Пополнения</h2>
+            <div id="contributionsList" class="list"></div>
+            <div class="input-row">
+              <input type="number" id="inputContribution" placeholder="Сумма пополнения" min="0">
+              <span class="suffix">€</span>
+            </div>
+            <button class="btn-primary" id="btnAddContribution">Добавить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Итоги -->
+      <div class="card summary-card">
+        <div class="summary-item">
+          <span class="stat-label">Потрачено всего</span>
+          <span class="stat-value" id="sumSpentView">0 ₽</span>
+        </div>
+        <div class="summary-item">
+          <span class="stat-label">Осталось всего</span>
+          <span class="stat-value accent" id="sumRemainingView">0 ₽</span>
+        </div>
+        <div class="summary-item">
+          <span class="stat-label">Дней пройдено</span>
+          <span class="stat-value" id="sumDaysPassedView">0</span>
+        </div>
+        <div class="summary-item">
+          <span class="stat-label">Прогресс к цели</span>
+          <span class="stat-value blue" id="sumGoalProgressView">0%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= СТРАНИЦА: ПРИВЫЧКИ ================= -->
+    <section class="page" id="page-habits">
+      <h1 class="page-title">Привычки</h1>
+
+      <div class="habits-top">
+        <div class="card center-card habits-progress-card">
+          <div class="ring-wrap small">
+            <svg viewBox="0 0 120 120" class="ring">
+              <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-fg" id="habitsRing" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-number" id="habitsPercentView">0%</span>
+              <span class="ring-label">прогресс</span>
+            </div>
+          </div>
+          <div class="habits-mini-stats">
+            <div><span class="stat-value" id="habitsTotalView">0</span><span class="stat-label">всего привычек</span></div>
+            <div><span class="stat-value accent" id="habitsDoneView">0</span><span class="stat-label">выполнено</span></div>
+            <div><span class="stat-value muted" id="habitsMissedView">0</span><span class="stat-label">пропущено</span></div>
+            <div><span class="stat-value blue" id="habitsStreakView">0</span><span class="stat-label">дней серия</span></div>
+          </div>
+        </div>
+
+        <div class="card calendar-card">
+          <div class="calendar-header">
+            <button id="calPrev">&lsaquo;</button>
+            <span id="calMonthLabel">Месяц</span>
+            <button id="calNext">&rsaquo;</button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </div>
+
+      <div class="habit-filters">
+        <button class="filter-btn active" data-filter="all">Все</button>
+        <button class="filter-btn" data-filter="morning">Утренние</button>
+        <button class="filter-btn" data-filter="afternoon">Дневные</button>
+        <button class="filter-btn" data-filter="evening">Вечерние</button>
+      </div>
+
+      <div class="habits-grid" id="habitsGrid"></div>
+
+      <button class="btn-secondary add-habit-btn" id="btnAddHabit">+ Добавить привычку</button>
+    </section>
+
+    <!-- ================= СТРАНИЦА: В РАЗРАБОТКЕ ================= -->
+    <section class="page" id="page-dev">
+      <div class="card center-card dev-card">
+        <h2>В разработке</h2>
+        <p class="dev-text">Здесь скоро появится что-то новое.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Модалка добавления привычки -->
+  <div class="modal-overlay" id="habitModalOverlay">
+    <div class="modal">
+      <h3>Новая привычка</h3>
+      <label class="field-label">Название</label>
+      <input type="text" id="habitName" placeholder="Например, Чтение книг">
+
+      <label class="field-label">Иконка</label>
+      <select id="habitIcon">
+        <option value="run">Бег</option>
+        <option value="book">Книга</option>
+        <option value="meditate">Медитация</option>
+        <option value="plan">Планирование</option>
+        <option value="gym">Спортзал</option>
+        <option value="water">Вода</option>
+        <option value="learn">Учёба</option>
+        <option value="sun">Подъём</option>
+      </select>
+
+      <label class="field-label">Время дня</label>
+      <select id="habitTime">
+        <option value="morning">Утро</option>
+        <option value="afternoon">День</option>
+        <option value="evening">Вечер</option>
+      </select>
+
+      <label class="field-label">Частота (текст)</label>
+      <input type="text" id="habitFreq" placeholder="Например, Ежедневно">
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btnCancelHabit">Отмена</button>
+        <button class="btn-primary" id="btnSaveHabit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
