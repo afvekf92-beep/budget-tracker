@@ -326,7 +326,7 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 .cig-balance.negative{ color:var(--danger); }
 
 .cig-buttons{
-  display:flex; gap:12px; width:100%; margin-top:22px;
+  display:flex; gap:12px; width:100%; margin-top:6px;
 }
 .btn-cig{
   flex:1;
@@ -357,11 +357,12 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 }
 .btn-reset{
   background:transparent;
-  border:1px solid rgba(255,107,107,0.3);
+  border:1px solid var(--card-border);
   color:var(--text-dim);
-  padding:10px 20px;
-  border-radius:999px;
+  padding:10px 24px;
+  border-radius:12px;
   font-size:13px;
+  letter-spacing:0.5px;
   cursor:pointer;
   transition:all .2s;
 }
