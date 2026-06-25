@@ -22,11 +22,11 @@ function setupStrands(){
     strandsData.push({
       baseX: (W/STRANDS) * i + (W/STRANDS)/2 + (Math.random()*60-30),
       height: H*0.7 + Math.random()*H*0.5,
-      sway1: 1000 + Math.random()*40,
+      sway1: 40 + Math.random()*40,
       sway2: 15 + Math.random()*20,
       freq1: 0.004 + Math.random()*0.003,
       freq2: 0.01 + Math.random()*0.006,
-      speed: 0.004 + Math.random()*0.0001,
+      speed: 0.15 + Math.random()*0.15,
       phase: Math.random()*Math.PI*2,
       width: 2 + Math.random()*2.5,
       alpha: 0.07 + Math.random()*0.10
@@ -88,7 +88,13 @@ const defaultState = {
   daysPassed: 0,
   goalTarget: 5000,
   contributions: [],
-  habits: []
+  habits: [],
+  cig: {
+    price: 0,
+    balance: 0,
+    streak: 0,
+    bestStreak: 0
+  }
 };
 
 let state = JSON.parse(JSON.stringify(defaultState));
@@ -116,6 +122,7 @@ function connectWithCode(code){
       state = { ...defaultState, ...snap.data() };
       renderExpenses();
       renderHabits();
+      renderCig();
       isApplyingRemoteUpdate = false;
     } else {
       // документа ещё нет — создаём с текущим (стартовым) состоянием
@@ -548,8 +555,86 @@ function renderCalendar(){
 
 
 /* ============================================================
+   СТРАНИЦА «ЭКОНОМИЯ НА СИГАРЕТАХ»
+   ============================================================ */
+const inputCigPrice = document.getElementById('inputCigPrice');
+const btnSetCigPrice = document.getElementById('btnSetCigPrice');
+const cigBalanceView = document.getElementById('cigBalanceView');
+const cigBalanceSub = document.getElementById('cigBalanceSub');
+const btnCigBought = document.getElementById('btnCigBought');
+const btnCigNotBought = document.getElementById('btnCigNotBought');
+const cigStreakView = document.getElementById('cigStreakView');
+const cigBestStreakView = document.getElementById('cigBestStreakView');
+const cigRing = document.getElementById('cigRing');
+const cigStreakRingView = document.getElementById('cigStreakRingView');
+
+const CIG_GOAL_DAYS = 30;
+
+function renderCig(){
+  if(!state.cig) state.cig = {price:0, balance:0, streak:0, bestStreak:0};
+  const cig = state.cig;
+
+  inputCigPrice.value = cig.price || '';
+
+  cigBalanceView.textContent = fmt(cig.balance) + ' ₽';
+  cigBalanceView.classList.remove('positive','negative');
+  if(cig.balance > 0){ cigBalanceView.classList.add('positive'); cigBalanceSub.textContent = 'накоплено'; }
+  else if(cig.balance < 0){ cigBalanceView.classList.add('negative'); cigBalanceSub.textContent = 'потрачено сверху'; }
+  else { cigBalanceSub.textContent = 'накоплено / потрачено'; }
+
+  cigStreakView.textContent = cig.streak + (cig.streak===1 ? ' день' : ' дней');
+  cigBestStreakView.textContent = cig.bestStreak + (cig.bestStreak===1 ? ' день' : ' дней');
+  cigStreakRingView.textContent = cig.streak;
+
+  const ratio = Math.min(1, cig.streak / CIG_GOAL_DAYS);
+  cigRing.style.strokeDashoffset = RING_CIRCUMFERENCE * (1-ratio);
+}
+
+btnSetCigPrice.addEventListener('click', ()=>{
+  const price = parseFloat(inputCigPrice.value) || 0;
+  state.cig.price = price;
+  saveState();
+  renderCig();
+});
+
+btnCigBought.addEventListener('click', ()=>{
+  const price = state.cig.price || 0;
+  state.cig.balance -= price;
+  state.cig.streak = 0;
+  saveState();
+  renderCig();
+});
+
+btnCigNotBought.addEventListener('click', ()=>{
+  const price = state.cig.price || 0;
+  state.cig.balance += price;
+  state.cig.streak += 1;
+  if(state.cig.streak > state.cig.bestStreak) state.cig.bestStreak = state.cig.streak;
+  saveState();
+  renderCig();
+});
+
+
+/* ============================================================
+   СБРОС ВСЕГО ПРОГРЕССА
+   ============================================================ */
+const btnResetAll = document.getElementById('btnResetAll');
+btnResetAll.addEventListener('click', ()=>{
+  const sure = confirm('Точно сбросить ВСЁ: расходы, цель, привычки и счётчик сигарет? Это нельзя отменить.');
+  if(!sure) return;
+  state = JSON.parse(JSON.stringify(defaultState));
+  inputSpentToday.value = 0;
+  saveState();
+  renderExpenses();
+  renderHabits();
+  renderCig();
+});
+
+
+/* ============================================================
    ИНИЦИАЛИЗАЦИЯ (первичная отрисовка с дефолтными данными,
    пока не подключилась синхронизация)
    ============================================================ */
 renderExpenses();
 renderHabits();
+renderCig();

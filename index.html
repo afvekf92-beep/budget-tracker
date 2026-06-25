@@ -37,7 +37,7 @@
     <nav class="tabs">
       <button class="tab-btn active" data-page="expenses">Расходы</button>
       <button class="tab-btn" data-page="habits">Привычки</button>
-      <button class="tab-btn" data-page="dev">В разработке</button>
+      <button class="tab-btn" data-page="cigs">Сигареты</button>
       <button class="tab-btn" id="btnSyncStatus" title="Синхронизация">☁ —</button>
     </nav>
 
@@ -211,14 +211,63 @@
       <button class="btn-secondary add-habit-btn" id="btnAddHabit">+ Добавить привычку</button>
     </section>
 
-    <!-- ================= СТРАНИЦА: В РАЗРАБОТКЕ ================= -->
-    <section class="page" id="page-dev">
-      <div class="card center-card dev-card">
-        <h2>В разработке</h2>
-        <p class="dev-text">Здесь скоро появится что-то новое.</p>
+    <!-- ================= СТРАНИЦА: ЭКОНОМИЯ НА СИГАРЕТАХ ================= -->
+    <section class="page" id="page-cigs">
+      <h1 class="page-title">Экономия на сигаретах</h1>
+
+      <div class="cigs-grid">
+        <div class="card">
+          <h2>Цена пачки</h2>
+          <div class="input-row">
+            <input type="number" id="inputCigPrice" min="0" placeholder="0">
+            <span class="suffix">₽</span>
+          </div>
+          <button class="btn-secondary" id="btnSetCigPrice">Сохранить цену</button>
+
+          <hr>
+
+          <div class="stat-block">
+            <span class="stat-label">Лучшая серия</span>
+            <span class="stat-value" id="cigBestStreakView">0 дней</span>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">Текущая серия</span>
+            <span class="stat-value accent" id="cigStreakView">0 дней</span>
+          </div>
+        </div>
+
+        <div class="card center-card">
+          <h2>Баланс</h2>
+          <div class="cig-balance" id="cigBalanceView">0 ₽</div>
+          <p class="goal-sub" id="cigBalanceSub">накоплено / потрачено</p>
+
+          <div class="cig-buttons">
+            <button class="btn-cig bought" id="btnCigBought">Купил</button>
+            <button class="btn-cig notbought" id="btnCigNotBought">Не купил</button>
+          </div>
+        </div>
+
+        <div class="card center-card">
+          <h2>Дней без сигарет</h2>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120" class="ring">
+              <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-fg goal" id="cigRing" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-number" id="cigStreakRingView">0</span>
+              <span class="ring-label">дней подряд</span>
+            </div>
+          </div>
+          <p class="goal-sub">цель: 30 дней без покупок</p>
+        </div>
       </div>
     </section>
 
+  </div>
+
+  <div class="reset-footer">
+    <button class="btn-reset" id="btnResetAll">Сбросить весь прогресс</button>
   </div>
 
   <!-- Модалка добавления привычки -->

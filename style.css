@@ -308,8 +308,67 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 
 .add-habit-btn{ max-width:320px; margin:0 auto; display:block; }
 
-.dev-card{ padding:60px 20px; }
-.dev-text{ color:var(--text-dim); }
+/* ===== Сигареты ===== */
+.cigs-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:20px;
+  align-items:start;
+}
+@media (max-width: 980px){ .cigs-grid{ grid-template-columns:1fr; } }
+
+.cig-balance{
+  font-size:48px;
+  font-weight:700;
+  margin:10px 0 0;
+}
+.cig-balance.positive{ color:var(--accent); }
+.cig-balance.negative{ color:var(--danger); }
+
+.cig-buttons{
+  display:flex; gap:12px; width:100%; margin-top:22px;
+}
+.btn-cig{
+  flex:1;
+  padding:16px;
+  border-radius:12px;
+  border:1px solid var(--card-border);
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+}
+.btn-cig.bought{ border-color:rgba(255,107,107,0.4); }
+.btn-cig.bought:hover{ background:rgba(255,107,107,0.12); border-color:var(--danger); }
+.btn-cig.notbought{ border-color:rgba(124,252,154,0.4); }
+.btn-cig.notbought:hover{ background:var(--accent-dim); border-color:var(--accent); }
+
+/* ===== Сброс прогресса ===== */
+.reset-footer{
+  max-width:1300px;
+  margin:10px auto 50px;
+  padding:0 20px;
+  display:flex;
+  justify-content:center;
+  position:relative;
+  z-index:1;
+}
+.btn-reset{
+  background:transparent;
+  border:1px solid rgba(255,107,107,0.3);
+  color:var(--text-dim);
+  padding:10px 20px;
+  border-radius:999px;
+  font-size:13px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.btn-reset:hover{
+  color:var(--danger);
+  border-color:var(--danger);
+}
 
 /* ===== Modal ===== */
 .modal-overlay{
