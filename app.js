@@ -13,7 +13,7 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // "Водоросли" — вертикальные плавные стебли, медленно покачивающиеся
-const STRANDS = 16;
+const STRANDS = 15;
 const strandsData = [];
 
 function setupStrands(){
@@ -22,11 +22,11 @@ function setupStrands(){
     strandsData.push({
       baseX: (W/STRANDS) * i + (W/STRANDS)/2 + (Math.random()*60-30),
       height: H*0.7 + Math.random()*H*0.5,
-      sway1: 40 + Math.random()*40,
-      sway2: 15 + Math.random()*20,
+      sway1: 100 + Math.random()*40,
+      sway2: 310 + Math.random()*20,
       freq1: 0.004 + Math.random()*0.003,
       freq2: 0.01 + Math.random()*0.006,
-      speed: 0.15 + Math.random()*0.15,
+      speed: 0.0001 + Math.random()*0.015,
       phase: Math.random()*Math.PI*2,
       width: 2 + Math.random()*2.5,
       alpha: 0.07 + Math.random()*0.10
