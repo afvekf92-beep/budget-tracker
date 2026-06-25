@@ -344,6 +344,12 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 .btn-cig.bought:hover{ background:rgba(255,107,107,0.12); border-color:var(--danger); }
 .btn-cig.notbought{ border-color:rgba(124,252,154,0.4); }
 .btn-cig.notbought:hover{ background:var(--accent-dim); border-color:var(--accent); }
+.btn-cig.claim{ border-color:rgba(111,168,255,0.4); }
+.btn-cig.claim:hover:not(:disabled){ background:rgba(111,168,255,0.12); border-color:var(--blue); }
+.btn-cig:disabled{
+  opacity:0.35;
+  cursor:not-allowed;
+}
 
 /* ===== Сброс прогресса ===== */
 .reset-footer{
@@ -352,6 +358,7 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
   padding:0 20px;
   display:flex;
   justify-content:center;
+  gap:12px;
   position:relative;
   z-index:1;
 }

@@ -70,11 +70,12 @@
             <span class="stat-value" id="dayBudgetView">0 ₽</span>
           </div>
 
-          <label class="field-label">Сколько потратил сегодня</label>
+          <label class="field-label">Сколько потратил (внеси покупку)</label>
           <div class="input-row">
-            <input type="number" id="inputSpentToday" min="0" value="0">
+            <input type="number" id="inputSpentToday" min="0" placeholder="0">
             <span class="suffix">₽</span>
           </div>
+          <button class="btn-secondary" id="btnAddSpent">Добавить трату</button>
 
           <div class="stat-block">
             <span class="stat-label">Осталось на день</span>
@@ -243,9 +244,10 @@
 
           <hr style="width:100%;">
 
+          <p class="goal-sub" id="cigCycleText">День 0 из 3</p>
           <div class="cig-buttons">
-            <button class="btn-cig bought" id="btnCigBought">Купил</button>
             <button class="btn-cig notbought" id="btnCigNotBought">Не купил</button>
+            <button class="btn-cig claim" id="btnCigClaim" disabled>Забрать экономию</button>
           </div>
         </div>
 
@@ -269,6 +271,7 @@
   </div>
 
   <div class="reset-footer">
+    <button class="btn-reset" id="btnRestoreBackup">Восстановить из бэкапа</button>
     <button class="btn-reset" id="btnResetAll">Сбросить весь прогресс</button>
   </div>
 

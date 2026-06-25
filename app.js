@@ -13,7 +13,7 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // "Водоросли" — вертикальные плавные стебли, медленно покачивающиеся
-const STRANDS = 15;
+const STRANDS = 16;
 const strandsData = [];
 
 function setupStrands(){
@@ -22,11 +22,11 @@ function setupStrands(){
     strandsData.push({
       baseX: (W/STRANDS) * i + (W/STRANDS)/2 + (Math.random()*60-30),
       height: H*0.7 + Math.random()*H*0.5,
-      sway1: 100 + Math.random()*40,
-      sway2: 310 + Math.random()*20,
+      sway1: 400 + Math.random()*400,
+      sway2: 15 + Math.random()*20,
       freq1: 0.004 + Math.random()*0.003,
       freq2: 0.01 + Math.random()*0.006,
-      speed: 0.0001 + Math.random()*0.015,
+      speed: 0.0015 + Math.random()*0.0015,
       phase: Math.random()*Math.PI*2,
       width: 2 + Math.random()*2.5,
       alpha: 0.07 + Math.random()*0.10
@@ -73,7 +73,8 @@ drawBackground();
 /* ============================================================
    FIREBASE / СИНХРОНИЗАЦИЯ МЕЖДУ УСТРОЙСТВАМИ
    ============================================================ */
-let firebaseApp, db, docRef;
+let firebaseApp, db, docRef, backupRef;
+let currentSyncCode = null;
 let syncReady = false;
 let isApplyingRemoteUpdate = false;
 let saveTimeout = null;
@@ -93,7 +94,8 @@ const defaultState = {
     price: 0,
     balance: 0,
     streak: 0,
-    bestStreak: 0
+    bestStreak: 0,
+    cycleCount: 0
   }
 };
 
@@ -113,7 +115,9 @@ function initFirebase(){
 
 function connectWithCode(code){
   initFirebase();
+  currentSyncCode = code;
   docRef = db.collection('budgetApp').doc(code);
+  backupRef = db.collection('budgetAppBackups').doc(code);
   localStorage.setItem('syncCode', code);
 
   docRef.onSnapshot(snap=>{
@@ -245,10 +249,15 @@ btnApplyPlan.addEventListener('click', ()=>{
   renderExpenses();
 });
 
-inputSpentToday.addEventListener('input', ()=>{
-  state.spentToday = parseFloat(inputSpentToday.value) || 0;
-  remainingTodayView.textContent = fmt(state.dayBudget - state.spentToday) + ' ₽';
+const btnAddSpent = document.getElementById('btnAddSpent');
+
+btnAddSpent.addEventListener('click', ()=>{
+  const amount = parseFloat(inputSpentToday.value);
+  if(!amount || amount<=0) return;
+  state.spentToday += amount;
+  inputSpentToday.value = '';
   saveState();
+  renderExpenses();
 });
 
 btnEndDay.addEventListener('click', ()=>{
@@ -561,18 +570,21 @@ const inputCigPrice = document.getElementById('inputCigPrice');
 const btnSetCigPrice = document.getElementById('btnSetCigPrice');
 const cigBalanceView = document.getElementById('cigBalanceView');
 const cigBalanceSub = document.getElementById('cigBalanceSub');
-const btnCigBought = document.getElementById('btnCigBought');
 const btnCigNotBought = document.getElementById('btnCigNotBought');
+const btnCigClaim = document.getElementById('btnCigClaim');
+const cigCycleText = document.getElementById('cigCycleText');
 const cigStreakView = document.getElementById('cigStreakView');
 const cigBestStreakView = document.getElementById('cigBestStreakView');
 const cigRing = document.getElementById('cigRing');
 const cigStreakRingView = document.getElementById('cigStreakRingView');
 
 const CIG_GOAL_DAYS = 30;
+const CIG_CYCLE_DAYS = 3;
 
 function renderCig(){
-  if(!state.cig) state.cig = {price:0, balance:0, streak:0, bestStreak:0};
+  if(!state.cig) state.cig = {price:0, balance:0, streak:0, bestStreak:0, cycleCount:0};
   const cig = state.cig;
+  if(cig.cycleCount === undefined) cig.cycleCount = 0;
 
   inputCigPrice.value = cig.price || '';
 
@@ -588,6 +600,10 @@ function renderCig(){
 
   const ratio = Math.min(1, cig.streak / CIG_GOAL_DAYS);
   cigRing.style.strokeDashoffset = RING_CIRCUMFERENCE * (1-ratio);
+
+  const cycleShown = Math.min(cig.cycleCount, CIG_CYCLE_DAYS);
+  cigCycleText.textContent = `День ${cycleShown} из ${CIG_CYCLE_DAYS}`;
+  btnCigClaim.disabled = cig.cycleCount < CIG_CYCLE_DAYS;
 }
 
 btnSetCigPrice.addEventListener('click', ()=>{
@@ -597,37 +613,86 @@ btnSetCigPrice.addEventListener('click', ()=>{
   renderCig();
 });
 
-btnCigBought.addEventListener('click', ()=>{
-  const price = state.cig.price || 0;
-  state.cig.balance -= price;
-  state.cig.streak = 0;
-  saveState();
-  renderCig();
-});
-
 btnCigNotBought.addEventListener('click', ()=>{
-  const price = state.cig.price || 0;
-  state.cig.balance += price;
+  state.cig.cycleCount += 1;
   state.cig.streak += 1;
   if(state.cig.streak > state.cig.bestStreak) state.cig.bestStreak = state.cig.streak;
   saveState();
   renderCig();
 });
 
+btnCigClaim.addEventListener('click', ()=>{
+  if(state.cig.cycleCount < CIG_CYCLE_DAYS) return;
+  const price = state.cig.price || 0;
+  state.cig.balance += price;
+  state.cig.cycleCount = 0;
+  saveState();
+  renderCig();
+});
+
 
 /* ============================================================
-   СБРОС ВСЕГО ПРОГРЕССА
+   СБРОС ВСЕГО ПРОГРЕССА (с защитой и автобэкапом)
    ============================================================ */
 const btnResetAll = document.getElementById('btnResetAll');
-btnResetAll.addEventListener('click', ()=>{
-  const sure = confirm('Точно сбросить ВСЁ: расходы, цель, привычки и счётчик сигарет? Это нельзя отменить.');
-  if(!sure) return;
+const btnRestoreBackup = document.getElementById('btnRestoreBackup');
+const CONFIRM_WORD = 'СБРОС';
+
+btnRestoreBackup.addEventListener('click', async ()=>{
+  if(!backupRef){ alert('Сначала подключись к синхронизации.'); return; }
+  try{
+    const snap = await backupRef.get();
+    if(!snap.exists){
+      alert('Резервной копии пока нет — она появится после первого сброса.');
+      return;
+    }
+    const backup = snap.data();
+    const sure = confirm(`Найден бэкап от ${backup.backupDate || 'неизвестной даты'}. Восстановить эти данные? Текущий прогресс будет заменён ими.`);
+    if(!sure) return;
+    delete backup.backupDate;
+    state = { ...defaultState, ...backup };
+    saveState();
+    renderExpenses();
+    renderHabits();
+    renderCig();
+    alert('Данные восстановлены из бэкапа.');
+  }catch(e){
+    alert('Не удалось получить резервную копию: ' + e.message);
+  }
+});
+
+btnResetAll.addEventListener('click', async ()=>{
+  const typed = prompt(
+    `Это удалит ВСЁ: расходы, цель, привычки и счётчик сигарет.\n` +
+    `Перед сбросом я автоматически сохраню резервную копию текущих данных.\n\n` +
+    `Чтобы подтвердить, введи слово: ${CONFIRM_WORD}`
+  );
+  if(typed === null) return; // нажал "отмена"
+  if(typed.trim().toUpperCase() !== CONFIRM_WORD){
+    alert('Слово не совпало — сброс отменён, данные не тронуты.');
+    return;
+  }
+
+  // автобэкап перед сбросом
+  if(backupRef){
+    try{
+      await backupRef.set({
+        ...state,
+        backupDate: new Date().toLocaleString('ru-RU')
+      });
+    }catch(e){
+      const cont = confirm('Не удалось сделать резервную копию (нет связи с облаком?). Всё равно сбросить?');
+      if(!cont) return;
+    }
+  }
+
   state = JSON.parse(JSON.stringify(defaultState));
   inputSpentToday.value = 0;
   saveState();
   renderExpenses();
   renderHabits();
   renderCig();
+  alert('Прогресс сброшен. Резервная копия предыдущих данных сохранена — если понадобится восстановить, напиши Claude.');
 });
 
 
