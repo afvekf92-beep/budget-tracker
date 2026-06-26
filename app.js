@@ -83,6 +83,7 @@ const defaultState = {
   totalDays: 19,
   totalAmount: 170,
   daysLeft: 19,
+  baseRate: 170/19,
   dayBudget: 170/19,
   spentToday: 0,
   totalSpentAll: 0,
@@ -143,12 +144,9 @@ function connectWithCode(code){
 function saveState(){
   if(isApplyingRemoteUpdate) return; // не отправляем то, что только что пришло из облака
   if(!docRef) return;
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(()=>{
-    docRef.set(state).catch(err=>{
-      console.error('Ошибка сохранения в облако:', err);
-    });
-  }, 400); // небольшая задержка, чтобы не слать запрос на каждую цифру
+  docRef.set(state).catch(err=>{
+    console.error('Ошибка сохранения в облако:', err);
+  });
 }
 
 btnSyncConnect.addEventListener('click', ()=>{
@@ -241,7 +239,8 @@ btnApplyPlan.addEventListener('click', ()=>{
   state.totalDays = days;
   state.totalAmount = total;
   state.daysLeft = days;
-  state.dayBudget = total/days;
+  state.baseRate = total/days; // фиксированный лимит на день, не меняется до нового плана
+  state.dayBudget = state.baseRate;
   state.spentToday = 0;
   state.totalSpentAll = 0;
   state.daysPassed = 0;
@@ -266,6 +265,7 @@ btnEndDay.addEventListener('click', ()=>{
     return;
   }
   const spent = state.spentToday;
+  const leftover = state.dayBudget - spent;
 
   state.totalSpentAll += spent;
   state.daysPassed += 1;
@@ -273,15 +273,13 @@ btnEndDay.addEventListener('click', ()=>{
   state.spentToday = 0;
   inputSpentToday.value = '';
 
-  // Сумма на следующий день = то, что реально осталось от внесённой суммы,
-  // равномерно распределённое на оставшиеся дни. Так общая сумма
-  // не может вырасти больше изначально введённой — только уменьшаться
-  // по мере трат (или расти, если ты тратил МЕНЬШЕ дневного лимита).
+  // Сумма на новый день = фиксированный дневной лимит (не меняется) + то,
+  // что осталось/перерасходовано со вчера. Это растёт линейно, а не
+  // в геометрической прогрессии, потому что лимит каждый раз один и тот же.
   if(state.daysLeft > 0){
-    const remainingPool = state.totalAmount - state.totalSpentAll;
-    state.dayBudget = remainingPool / state.daysLeft;
+    state.dayBudget = state.baseRate + leftover;
   } else {
-    state.dayBudget = state.totalAmount - state.totalSpentAll;
+    state.dayBudget = leftover;
   }
 
   saveState();
