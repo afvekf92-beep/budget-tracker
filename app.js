@@ -1,5 +1,5 @@
 /* ============================================================
-   АНИМИРОВАННЫЙ ФОН (топографические линии)
+   АНИМИРОВАННЫЙ ФОН (плавающие светлячки с зелёным блюром)
    ============================================================ */
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
@@ -12,62 +12,65 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// "Водоросли" — вертикальные плавные стебли, медленно покачивающиеся
-const STRANDS = 16;
-const strandsData = [];
+const ACCENT_RGB = '124,252,154'; // совпадает с --accent в style.css
 
-function setupStrands(){
-  strandsData.length = 0;
-  for(let i=0;i<STRANDS;i++){
-    strandsData.push({
-      baseX: (W/STRANDS) * i + (W/STRANDS)/2 + (Math.random()*60-30),
-      height: H*0.7 + Math.random()*H*0.5,
-      sway1: 40 + Math.random()*40,
-      sway2: 15 + Math.random()*20,
-      freq1: 0.004 + Math.random()*0.003,
-      freq2: 0.01 + Math.random()*0.006,
-      speed: 0.15 + Math.random()*0.15,
-      phase: Math.random()*Math.PI*2,
-      width: 2 + Math.random()*2.5,
-      alpha: 0.07 + Math.random()*0.10
+const FIREFLIES_COUNT = 5;
+let fireflies = [];
+
+function setupFireflies(){
+  fireflies = [];
+  for(let i=0;i<FIREFLIES_COUNT;i++){
+    fireflies.push({
+      baseX: Math.random()*W,
+      baseY: Math.random()*H,
+      rangeX: 120 + Math.random()*180,
+      rangeY: 100 + Math.random()*150,
+      speedX: 0.15 + Math.random()*0.15,
+      speedY: 0.12 + Math.random()*0.15,
+      phaseX: Math.random()*Math.PI*2,
+      phaseY: Math.random()*Math.PI*2,
+      radius: 60 + Math.random()*70,
+      coreSize: 3 + Math.random()*2,
+      alpha: 0.35 + Math.random()*0.25,
+      pulseSpeed: 0.3 + Math.random()*0.3,
+      pulsePhase: Math.random()*Math.PI*2
     });
   }
 }
-setupStrands();
-window.addEventListener('resize', setupStrands);
+setupFireflies();
+window.addEventListener('resize', setupFireflies);
 
 function drawBackground(){
   ctx.clearRect(0,0,W,H);
 
-  strandsData.forEach(s=>{
-    const segments = 40;
-    const points = [];
-    for(let j=0;j<=segments;j++){
-      const t = j/segments; // 0 = низ, 1 = верх стебля
-      const y = H - t*s.height;
-      const sway = Math.sin(t*Math.PI*1.4 + time*s.speed + s.phase) * s.sway1 * t
-                 + Math.sin(t*Math.PI*3 + time*s.speed*1.6 + s.phase*1.3) * s.sway2 * t;
-      const x = s.baseX + sway;
-      points.push({x,y});
-    }
+  fireflies.forEach(f=>{
+    const x = f.baseX + Math.sin(time*f.speedX + f.phaseX) * f.rangeX;
+    const y = f.baseY + Math.sin(time*f.speedY*1.3 + f.phaseY) * f.rangeY;
+    const pulse = 0.75 + Math.sin(time*f.pulseSpeed + f.pulsePhase) * 0.25;
+    const alpha = f.alpha * pulse;
 
+    // большой мягкий блюр-ореол
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, f.radius);
+    glow.addColorStop(0, `rgba(${ACCENT_RGB},${alpha})`);
+    glow.addColorStop(0.4, `rgba(${ACCENT_RGB},${alpha*0.35})`);
+    glow.addColorStop(1, `rgba(${ACCENT_RGB},0)`);
+    ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for(let j=1;j<points.length-1;j++){
-      const xc = (points[j].x + points[j+1].x)/2;
-      const yc = (points[j].y + points[j+1].y)/2;
-      ctx.quadraticCurveTo(points[j].x, points[j].y, xc, yc);
-    }
-    ctx.strokeStyle = `rgba(255,255,255,${s.alpha})`;
-    ctx.lineWidth = s.width;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+    ctx.arc(x, y, f.radius, 0, Math.PI*2);
+    ctx.fill();
+
+    // яркая точка-ядро в центре
+    ctx.beginPath();
+    ctx.arc(x, y, f.coreSize, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${ACCENT_RGB},${Math.min(1, alpha*2.2)})`;
+    ctx.fill();
   });
 
-  time += 0.5; // медленное движение
+  time += 0.01;
   requestAnimationFrame(drawBackground);
 }
 drawBackground();
+
 
 
 /* ============================================================
@@ -632,6 +635,18 @@ btnCigClaim.addEventListener('click', ()=>{
   const price = state.cig.price || 0;
   state.cig.balance += price;
   state.cig.cycleCount = 0;
+  saveState();
+  renderCig();
+});
+
+const btnCigRelapse = document.getElementById('btnCigRelapse');
+btnCigRelapse.addEventListener('click', ()=>{
+  const sure = confirm('Отметить срыв? Баланс, текущая серия и цикл сбросятся в 0. Лучшая серия и цена пачки останутся.');
+  if(!sure) return;
+  state.cig.balance = 0;
+  state.cig.streak = 0;
+  state.cig.cycleCount = 0;
+  // state.cig.bestStreak и state.cig.price не трогаем
   saveState();
   renderCig();
 });

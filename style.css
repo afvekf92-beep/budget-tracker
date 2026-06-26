@@ -16,7 +16,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 
 #bg-canvas{
   position:fixed; top:0; left:0; width:100%; height:100%;
-  z-index:0; opacity:0.55;
+  z-index:0; opacity:0.85;
   pointer-events:none;
 }
 
@@ -355,6 +355,18 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 .btn-cig:disabled{
   opacity:0.35;
   cursor:not-allowed;
+}
+.btn-cig.relapse{
+  width:100%;
+  margin-top:14px;
+  border-color:rgba(255,107,107,0.3);
+  color:var(--text-dim);
+  font-weight:400;
+}
+.btn-cig.relapse:hover{
+  background:rgba(255,107,107,0.1);
+  border-color:var(--danger);
+  color:var(--danger);
 }
 
 /* ===== Сброс прогресса ===== */
