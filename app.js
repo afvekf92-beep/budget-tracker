@@ -22,11 +22,11 @@ function setupStrands(){
     strandsData.push({
       baseX: (W/STRANDS) * i + (W/STRANDS)/2 + (Math.random()*60-30),
       height: H*0.7 + Math.random()*H*0.5,
-      sway1: 400 + Math.random()*400,
+      sway1: 40 + Math.random()*40,
       sway2: 15 + Math.random()*20,
       freq1: 0.004 + Math.random()*0.003,
       freq2: 0.01 + Math.random()*0.006,
-      speed: 0.0015 + Math.random()*0.0015,
+      speed: 0.15 + Math.random()*0.15,
       phase: Math.random()*Math.PI*2,
       width: 2 + Math.random()*2.5,
       alpha: 0.07 + Math.random()*0.10
@@ -266,15 +266,23 @@ btnEndDay.addEventListener('click', ()=>{
     return;
   }
   const spent = state.spentToday;
-  const leftover = state.dayBudget - spent;
 
   state.totalSpentAll += spent;
   state.daysPassed += 1;
   state.daysLeft -= 1;
-  // перенос остатка/перерасхода на следующий день
-  state.dayBudget = state.dayBudget + leftover;
   state.spentToday = 0;
-  inputSpentToday.value = 0;
+  inputSpentToday.value = '';
+
+  // Сумма на следующий день = то, что реально осталось от внесённой суммы,
+  // равномерно распределённое на оставшиеся дни. Так общая сумма
+  // не может вырасти больше изначально введённой — только уменьшаться
+  // по мере трат (или расти, если ты тратил МЕНЬШЕ дневного лимита).
+  if(state.daysLeft > 0){
+    const remainingPool = state.totalAmount - state.totalSpentAll;
+    state.dayBudget = remainingPool / state.daysLeft;
+  } else {
+    state.dayBudget = state.totalAmount - state.totalSpentAll;
+  }
 
   saveState();
   renderExpenses();
