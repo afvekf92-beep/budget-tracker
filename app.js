@@ -638,9 +638,11 @@ btnCigClaim.addEventListener('click', ()=>{
 
 
 /* ============================================================
-   СБРОС ВСЕГО ПРОГРЕССА (с защитой и автобэкапом)
+   СБРОС ПРОГРЕССА ПО СТРАНИЦАМ (с защитой и автобэкапом)
    ============================================================ */
-const btnResetAll = document.getElementById('btnResetAll');
+const btnResetExpenses = document.getElementById('btnResetExpenses');
+const btnResetHabits = document.getElementById('btnResetHabits');
+const btnResetCig = document.getElementById('btnResetCig');
 const btnRestoreBackup = document.getElementById('btnRestoreBackup');
 const CONFIRM_WORD = 'СБРОС';
 
@@ -649,11 +651,11 @@ btnRestoreBackup.addEventListener('click', async ()=>{
   try{
     const snap = await backupRef.get();
     if(!snap.exists){
-      alert('Резервной копии пока нет — она появится после первого сброса.');
+      alert('Резервной копии пока нет — она появится после первого сброса на любой странице.');
       return;
     }
     const backup = snap.data();
-    const sure = confirm(`Найден бэкап от ${backup.backupDate || 'неизвестной даты'}. Восстановить эти данные? Текущий прогресс будет заменён ими.`);
+    const sure = confirm(`Найден бэкап от ${backup.backupDate || 'неизвестной даты'}. Восстановить ВСЕ данные из него? Текущий прогресс будет заменён.`);
     if(!sure) return;
     delete backup.backupDate;
     state = { ...defaultState, ...backup };
@@ -661,44 +663,73 @@ btnRestoreBackup.addEventListener('click', async ()=>{
     renderExpenses();
     renderHabits();
     renderCig();
-    alert('Данные восстановлены из бэкапа.');
+    alert('Все данные восстановлены из бэкапа.');
   }catch(e){
     alert('Не удалось получить резервную копию: ' + e.message);
   }
 });
 
-btnResetAll.addEventListener('click', async ()=>{
+async function confirmAndBackup(message){
   const typed = prompt(
-    `Это удалит ВСЁ: расходы, цель, привычки и счётчик сигарет.\n` +
+    `${message}\n` +
     `Перед сбросом я автоматически сохраню резервную копию текущих данных.\n\n` +
     `Чтобы подтвердить, введи слово: ${CONFIRM_WORD}`
   );
-  if(typed === null) return; // нажал "отмена"
+  if(typed === null) return false;
   if(typed.trim().toUpperCase() !== CONFIRM_WORD){
     alert('Слово не совпало — сброс отменён, данные не тронуты.');
-    return;
+    return false;
   }
-
-  // автобэкап перед сбросом
   if(backupRef){
     try{
-      await backupRef.set({
-        ...state,
-        backupDate: new Date().toLocaleString('ru-RU')
-      });
+      await backupRef.set({ ...state, backupDate: new Date().toLocaleString('ru-RU') });
     }catch(e){
       const cont = confirm('Не удалось сделать резервную копию (нет связи с облаком?). Всё равно сбросить?');
-      if(!cont) return;
+      if(!cont) return false;
     }
   }
+  return true;
+}
 
-  state = JSON.parse(JSON.stringify(defaultState));
-  inputSpentToday.value = 0;
+btnResetExpenses.addEventListener('click', async ()=>{
+  const ok = await confirmAndBackup('Это сбросит расходы, план и главную цель (но НЕ привычки и НЕ сигареты).');
+  if(!ok) return;
+
+  state.totalDays = defaultState.totalDays;
+  state.totalAmount = defaultState.totalAmount;
+  state.daysLeft = defaultState.totalDays;
+  state.baseRate = defaultState.totalDays ? defaultState.totalAmount/defaultState.totalDays : 0;
+  state.dayBudget = state.baseRate;
+  state.spentToday = 0;
+  state.totalSpentAll = 0;
+  state.daysPassed = 0;
+  state.goalTarget = defaultState.goalTarget;
+  state.contributions = [];
+  inputSpentToday.value = '';
+
   saveState();
   renderExpenses();
+  alert('Расходы и цель сброшены.');
+});
+
+btnResetHabits.addEventListener('click', async ()=>{
+  const ok = await confirmAndBackup('Это удалит ВСЕ привычки и их историю.');
+  if(!ok) return;
+
+  state.habits = [];
+  saveState();
   renderHabits();
+  alert('Привычки сброшены.');
+});
+
+btnResetCig.addEventListener('click', async ()=>{
+  const ok = await confirmAndBackup('Это сбросит баланс, серию и цикл по сигаретам (цена пачки тоже сбросится).');
+  if(!ok) return;
+
+  state.cig = JSON.parse(JSON.stringify(defaultState.cig));
+  saveState();
   renderCig();
-  alert('Прогресс сброшен. Резервная копия предыдущих данных сохранена — если понадобится восстановить, напиши Claude.');
+  alert('Счётчик сигарет сброшен.');
 });
 
 

@@ -308,6 +308,12 @@ hr{ border:none; border-top:1px solid var(--card-border); margin:18px 0; }
 
 .add-habit-btn{ max-width:320px; margin:0 auto; display:block; }
 
+.page-reset-row{
+  display:flex;
+  justify-content:center;
+  margin-top:20px;
+}
+
 /* ===== Сигареты ===== */
 .cigs-grid{
   display:grid;
