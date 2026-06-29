@@ -241,8 +241,8 @@ function renderExpenses(){
   inputDays.value = state.totalDays;
   inputTotal.value = state.totalAmount;
 
-  dayBudgetView.textContent = fmt(state.dayBudget) + ' Б̶';
-  remainingTodayView.textContent = fmt(state.dayBudget - state.spentToday) + ' Б̶';
+  dayBudgetView.textContent = fmt(state.dayBudget);
+  remainingTodayView.textContent = fmt(state.dayBudget - state.spentToday);
 
   daysLeftView.textContent = state.daysLeft;
   const daysRatio = state.totalDays > 0 ? state.daysLeft/state.totalDays : 0;
@@ -252,9 +252,9 @@ function renderExpenses(){
   vbarFill.style.height = (daysRatio*100) + '%';
 
   const spentIncludingToday = state.totalSpentAll + state.spentToday;
-  sumSpentView.textContent = fmt(spentIncludingToday) + ' Б̶';
+  sumSpentView.textContent = fmt(spentIncludingToday);
   const remainingAll = state.totalAmount - spentIncludingToday;
-  sumRemainingView.textContent = fmt(remainingAll) + ' Б̶';
+  sumRemainingView.textContent = fmt(remainingAll);
   sumDaysPassedView.textContent = state.daysPassed;
 
   renderGoal();
@@ -394,19 +394,46 @@ function todayStr(){
   return new Date().toISOString().slice(0,10); // YYYY-MM-DD
 }
 
-function calcStreak(habit){
-  let streak = 0;
-  let d = new Date();
+// Понедельник той недели, в которую попадает дата (ключ недели)
+function weekKeyOf(dateInput){
+  const d = new Date(dateInput);
+  const dayIdx = (d.getDay() + 6) % 7; // 0 = понедельник
+  d.setDate(d.getDate() - dayIdx);
+  return d.toISOString().slice(0,10);
+}
+
+// Считаем, сколько раз привычка выполнена в каждой неделе,
+// и сколько недель ПОДРЯД цель (weeklyTarget) была достигнута.
+function calcWeeklyStats(habit){
+  const target = habit.weeklyTarget || 7;
+  const counts = {};
+  habit.completedDates.forEach(ds=>{
+    const wk = weekKeyOf(ds);
+    counts[wk] = (counts[wk]||0) + 1;
+  });
+
+  const currentWeekKey = weekKeyOf(new Date());
+  const currentWeekCount = counts[currentWeekKey] || 0;
+
+  // серия в неделях: идём от последней ПОЛНОСТЬЮ завершённой недели назад,
+  // пока цель выполняется. Текущая (ещё не закончившаяся) неделя не может
+  // сломать серию — она только может добавить +1, если цель уже достигнута.
+  let streakWeeks = 0;
+  let cursor = new Date(currentWeekKey);
+  cursor.setDate(cursor.getDate() - 7); // предыдущая неделя
   while(true){
-    const ds = d.toISOString().slice(0,10);
-    if(habit.completedDates.includes(ds)){
-      streak++;
-      d.setDate(d.getDate()-1);
+    const wk = weekKeyOf(cursor);
+    const count = counts[wk] || 0;
+    if(count >= target){
+      streakWeeks++;
+      cursor.setDate(cursor.getDate() - 7);
     } else {
       break;
     }
   }
-  return streak;
+  if(currentWeekCount >= target) streakWeeks++;
+
+  return { streakWeeks, currentWeekCount, target };
 }
 
 let currentFilter = 'all';
@@ -423,11 +450,11 @@ function renderHabits(){
 
   filtered.forEach(habit=>{
     const doneToday = habit.completedDates.includes(today);
-    const streak = calcStreak(habit);
+    const { streakWeeks, currentWeekCount, target } = calcWeeklyStats(habit);
     const card = document.createElement('div');
     card.className = 'habit-card';
 
-    const ratio = Math.min(1, streak/7);
+    const ratio = Math.min(1, currentWeekCount/target);
     const offset = RING_CIRCUMFERENCE * (1-ratio);
 
     card.innerHTML = `
@@ -443,9 +470,9 @@ function renderHabits(){
         </svg>
         <div class="habit-icon-symbol">${ICONS[habit.icon]||'⭐'}</div>
       </div>
-      <div class="habit-streak ${streak===0?'zero':''}">${streak} ${streak===1?'день':'дня'} подряд</div>
-      <div class="habit-sub">из 7</div>
-      <div class="habit-meta">${habit.freq || 'Ежедневно'} · ${labelForTime(habit.time)}</div>
+      <div class="habit-streak ${streakWeeks===0?'zero':''}">${streakWeeks} ${streakWeeks===1?'неделя':'нед.'} подряд</div>
+      <div class="habit-sub">${currentWeekCount} из ${target} на этой неделе</div>
+      <div class="habit-meta">${target} раз/нед · ${labelForTime(habit.time)}</div>
     `;
     habitsGrid.appendChild(card);
   });
@@ -494,7 +521,7 @@ function renderHabitsStats(){
   const done = state.habits.filter(h=>h.completedDates.includes(today)).length;
   const missed = total - done;
   const pct = total>0 ? Math.round((done/total)*100) : 0;
-  const bestStreak = state.habits.reduce((m,h)=>Math.max(m, calcStreak(h)), 0);
+  const bestStreak = state.habits.reduce((m,h)=>Math.max(m, calcWeeklyStats(h).streakWeeks), 0);
 
   habitsTotalView.textContent = total;
   habitsDoneView.textContent = done;
@@ -522,7 +549,7 @@ const btnSaveHabit = document.getElementById('btnSaveHabit');
 
 btnAddHabit.addEventListener('click', ()=>{
   document.getElementById('habitName').value = '';
-  document.getElementById('habitFreq').value = '';
+  document.getElementById('habitWeeklyTarget').value = '5';
   habitModalOverlay.classList.add('show');
 });
 btnCancelHabit.addEventListener('click', ()=>{
@@ -533,11 +560,11 @@ btnSaveHabit.addEventListener('click', ()=>{
   if(!name){ alert('Введите название привычки'); return; }
   const icon = document.getElementById('habitIcon').value;
   const time = document.getElementById('habitTime').value;
-  const freq = document.getElementById('habitFreq').value.trim();
+  const weeklyTarget = parseInt(document.getElementById('habitWeeklyTarget').value, 10) || 7;
 
   state.habits.push({
     id: 'h_' + Date.now(),
-    name, icon, time, freq,
+    name, icon, time, weeklyTarget,
     completedDates: [],
     created: todayStr()
   });
@@ -622,7 +649,7 @@ function renderCig(){
 
   inputCigPrice.value = cig.price || '';
 
-  cigBalanceView.textContent = fmt(cig.balance) + ' Б̶';
+  cigBalanceView.textContent = fmt(cig.balance);
   cigBalanceView.classList.remove('positive','negative');
   if(cig.balance > 0){ cigBalanceView.classList.add('positive'); cigBalanceSub.textContent = 'накоплено'; }
   else if(cig.balance < 0){ cigBalanceView.classList.add('negative'); cigBalanceSub.textContent = 'потрачено сверху'; }

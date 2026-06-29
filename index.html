@@ -58,7 +58,7 @@
           <label class="field-label">Общая сумма на эти дни</label>
           <div class="input-row">
             <input type="number" id="inputTotal" min="0" step="0.01" value="170">
-            <span class="suffix">Б̶</span>
+            
           </div>
 
           <button class="btn-secondary" id="btnApplyPlan">Применить план</button>
@@ -67,19 +67,19 @@
 
           <div class="stat-block">
             <span class="stat-label">Сумма на день</span>
-            <span class="stat-value" id="dayBudgetView">0 Б̶</span>
+            <span class="stat-value" id="dayBudgetView">0</span>
           </div>
 
           <label class="field-label">Сколько потратил (внеси покупку)</label>
           <div class="input-row">
             <input type="number" id="inputSpentToday" min="0" step="0.01" placeholder="0">
-            <span class="suffix">Б̶</span>
+            
           </div>
           <button class="btn-secondary" id="btnAddSpent">Добавить трату</button>
 
           <div class="stat-block">
             <span class="stat-label">Осталось на день</span>
-            <span class="stat-value accent" id="remainingTodayView">0 Б̶</span>
+            <span class="stat-value accent" id="remainingTodayView">0</span>
           </div>
 
           <button class="btn-primary" id="btnEndDay">День закончился</button>
@@ -150,11 +150,11 @@
       <div class="card summary-card">
         <div class="summary-item">
           <span class="stat-label">Потрачено всего</span>
-          <span class="stat-value" id="sumSpentView">0 Б̶</span>
+          <span class="stat-value" id="sumSpentView">0</span>
         </div>
         <div class="summary-item">
           <span class="stat-label">Осталось всего</span>
-          <span class="stat-value accent" id="sumRemainingView">0 Б̶</span>
+          <span class="stat-value accent" id="sumRemainingView">0</span>
         </div>
         <div class="summary-item">
           <span class="stat-label">Дней пройдено</span>
@@ -191,7 +191,7 @@
             <div><span class="stat-value" id="habitsTotalView">0</span><span class="stat-label">всего привычек</span></div>
             <div><span class="stat-value accent" id="habitsDoneView">0</span><span class="stat-label">выполнено</span></div>
             <div><span class="stat-value muted" id="habitsMissedView">0</span><span class="stat-label">пропущено</span></div>
-            <div><span class="stat-value blue" id="habitsStreakView">0</span><span class="stat-label">дней серия</span></div>
+            <div><span class="stat-value blue" id="habitsStreakView">0</span><span class="stat-label">недель серия</span></div>
           </div>
         </div>
 
@@ -230,7 +230,7 @@
           <h2>Цена пачки</h2>
           <div class="input-row">
             <input type="number" id="inputCigPrice" min="0" step="0.01" placeholder="0">
-            <span class="suffix">Б̶</span>
+            
           </div>
           <button class="btn-secondary" id="btnSetCigPrice">Сохранить цену</button>
 
@@ -248,7 +248,7 @@
 
         <div class="card center-card">
           <h2>Баланс</h2>
-          <div class="cig-balance" id="cigBalanceView">0 Б̶</div>
+          <div class="cig-balance" id="cigBalanceView">0</div>
           <p class="goal-sub" id="cigBalanceSub">накоплено / потрачено</p>
 
           <hr style="width:100%;">
@@ -315,8 +315,16 @@
         <option value="evening">Вечер</option>
       </select>
 
-      <label class="field-label">Частота (текст)</label>
-      <input type="text" id="habitFreq" placeholder="Например, Ежедневно">
+      <label class="field-label">Сколько раз в неделю</label>
+      <select id="habitWeeklyTarget">
+        <option value="1">1 раз в неделю</option>
+        <option value="2">2 раза в неделю</option>
+        <option value="3">3 раза в неделю</option>
+        <option value="4">4 раза в неделю</option>
+        <option value="5" selected>5 раз в неделю</option>
+        <option value="6">6 раз в неделю</option>
+        <option value="7">7 раз в неделю (каждый день)</option>
+      </select>
 
       <div class="modal-actions">
         <button class="btn-secondary" id="btnCancelHabit">Отмена</button>
