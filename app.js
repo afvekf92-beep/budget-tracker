@@ -221,16 +221,26 @@ function updatePlanTimer(){
 setInterval(updatePlanTimer, 1000);
 updatePlanTimer();
 
-const inputPlanEnd = document.getElementById('inputPlanEnd');
+const inputTimerDays = document.getElementById('inputTimerDays');
+const inputTimerHours = document.getElementById('inputTimerHours');
+const inputTimerMinutes = document.getElementById('inputTimerMinutes');
+const inputTimerSeconds = document.getElementById('inputTimerSeconds');
 const btnSetPlanEnd = document.getElementById('btnSetPlanEnd');
 
 btnSetPlanEnd.addEventListener('click', ()=>{
-  const val = inputPlanEnd.value;
-  if(!val) return;
-  const ts = new Date(val).getTime();
-  if(isNaN(ts)){ alert('Не получилось распознать дату/время.'); return; }
-  state.planEndTimestamp = ts;
-  inputPlanEnd.value = '';
+  const d = parseInt(inputTimerDays.value, 10) || 0;
+  const h = parseInt(inputTimerHours.value, 10) || 0;
+  const m = parseInt(inputTimerMinutes.value, 10) || 0;
+  const s = parseInt(inputTimerSeconds.value, 10) || 0;
+
+  const totalMs = (((d*24 + h)*60 + m)*60 + s) * 1000;
+  if(totalMs <= 0){ alert('Введи хотя бы одно значение больше нуля.'); return; }
+
+  state.planEndTimestamp = Date.now() + totalMs;
+  inputTimerDays.value = '';
+  inputTimerHours.value = '';
+  inputTimerMinutes.value = '';
+  inputTimerSeconds.value = '';
   saveState();
   updatePlanTimer();
 });
