@@ -88,7 +88,6 @@ const defaultState = {
   daysLeft: 19,
   baseRate: 170/19,
   dayBudget: 170/19,
-  planEndTimestamp: Date.now() + 19*24*60*60*1000,
   spentToday: 0,
   totalSpentAll: 0,
   daysPassed: 0,
@@ -204,46 +203,6 @@ const daysLeftView = document.getElementById('daysLeftView');
 const daysRing = document.getElementById('daysRing');
 const vbarMaxLabel = document.getElementById('vbarMaxLabel');
 const vbarFill = document.getElementById('vbarFill');
-const planTimerView = document.getElementById('planTimerView');
-
-function updatePlanTimer(){
-  if(!state.planEndTimestamp){ planTimerView.textContent = '—'; return; }
-  let diff = state.planEndTimestamp - Date.now();
-  if(diff < 0) diff = 0;
-
-  const d = Math.floor(diff / (24*60*60*1000));
-  const h = Math.floor((diff % (24*60*60*1000)) / (60*60*1000));
-  const m = Math.floor((diff % (60*60*1000)) / (60*1000));
-  const s = Math.floor((diff % (60*1000)) / 1000);
-
-  planTimerView.textContent = `${d} д ${h} ч ${m} м ${s} с`;
-}
-setInterval(updatePlanTimer, 1000);
-updatePlanTimer();
-
-const inputTimerDays = document.getElementById('inputTimerDays');
-const inputTimerHours = document.getElementById('inputTimerHours');
-const inputTimerMinutes = document.getElementById('inputTimerMinutes');
-const inputTimerSeconds = document.getElementById('inputTimerSeconds');
-const btnSetPlanEnd = document.getElementById('btnSetPlanEnd');
-
-btnSetPlanEnd.addEventListener('click', ()=>{
-  const d = parseInt(inputTimerDays.value, 10) || 0;
-  const h = parseInt(inputTimerHours.value, 10) || 0;
-  const m = parseInt(inputTimerMinutes.value, 10) || 0;
-  const s = parseInt(inputTimerSeconds.value, 10) || 0;
-
-  const totalMs = (((d*24 + h)*60 + m)*60 + s) * 1000;
-  if(totalMs <= 0){ alert('Введи хотя бы одно значение больше нуля.'); return; }
-
-  state.planEndTimestamp = Date.now() + totalMs;
-  inputTimerDays.value = '';
-  inputTimerHours.value = '';
-  inputTimerMinutes.value = '';
-  inputTimerSeconds.value = '';
-  saveState();
-  updatePlanTimer();
-});
 
 const sumSpentView = document.getElementById('sumSpentView');
 const sumRemainingView = document.getElementById('sumRemainingView');
@@ -292,7 +251,6 @@ btnApplyPlan.addEventListener('click', ()=>{
   state.daysLeft = days;
   state.baseRate = total/days; // фиксированный лимит на день, не меняется до нового плана
   state.dayBudget = state.baseRate;
-  state.planEndTimestamp = Date.now() + days*24*60*60*1000;
   state.spentToday = 0;
   state.totalSpentAll = 0;
   state.daysPassed = 0;
