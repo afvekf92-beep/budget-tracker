@@ -221,6 +221,20 @@ function updatePlanTimer(){
 setInterval(updatePlanTimer, 1000);
 updatePlanTimer();
 
+const inputPlanEnd = document.getElementById('inputPlanEnd');
+const btnSetPlanEnd = document.getElementById('btnSetPlanEnd');
+
+btnSetPlanEnd.addEventListener('click', ()=>{
+  const val = inputPlanEnd.value;
+  if(!val) return;
+  const ts = new Date(val).getTime();
+  if(isNaN(ts)){ alert('Не получилось распознать дату/время.'); return; }
+  state.planEndTimestamp = ts;
+  inputPlanEnd.value = '';
+  saveState();
+  updatePlanTimer();
+});
+
 const sumSpentView = document.getElementById('sumSpentView');
 const sumRemainingView = document.getElementById('sumRemainingView');
 const sumDaysPassedView = document.getElementById('sumDaysPassedView');
