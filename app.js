@@ -88,6 +88,7 @@ const defaultState = {
   daysLeft: 19,
   baseRate: 170/19,
   dayBudget: 170/19,
+  planEndTimestamp: Date.now() + 19*24*60*60*1000,
   spentToday: 0,
   totalSpentAll: 0,
   daysPassed: 0,
@@ -203,6 +204,23 @@ const daysLeftView = document.getElementById('daysLeftView');
 const daysRing = document.getElementById('daysRing');
 const vbarMaxLabel = document.getElementById('vbarMaxLabel');
 const vbarFill = document.getElementById('vbarFill');
+const planTimerView = document.getElementById('planTimerView');
+
+function updatePlanTimer(){
+  if(!state.planEndTimestamp){ planTimerView.textContent = '—'; return; }
+  let diff = state.planEndTimestamp - Date.now();
+  if(diff < 0) diff = 0;
+
+  const d = Math.floor(diff / (24*60*60*1000));
+  const h = Math.floor((diff % (24*60*60*1000)) / (60*60*1000));
+  const m = Math.floor((diff % (60*60*1000)) / (60*1000));
+  const s = Math.floor((diff % (60*1000)) / 1000);
+
+  planTimerView.textContent = `${d} д ${h} ч ${m} м ${s} с`;
+}
+setInterval(updatePlanTimer, 1000);
+updatePlanTimer();
+
 const sumSpentView = document.getElementById('sumSpentView');
 const sumRemainingView = document.getElementById('sumRemainingView');
 const sumDaysPassedView = document.getElementById('sumDaysPassedView');
@@ -211,15 +229,20 @@ const sumGoalProgressView = document.getElementById('sumGoalProgressView');
 const RING_CIRCUMFERENCE = 327; // 2*pi*52 (округлено), совпадает с CSS
 
 function fmt(n){
-  return Math.round(n*10)/10; // округление до 1 знака
+  return Math.round(n*100)/100; // округление до 2 знаков (копейки)
+}
+
+function parseNum(value){
+  if(value === null || value === undefined) return NaN;
+  return parseFloat(String(value).replace(',', '.'));
 }
 
 function renderExpenses(){
   inputDays.value = state.totalDays;
   inputTotal.value = state.totalAmount;
 
-  dayBudgetView.textContent = fmt(state.dayBudget) + ' ₽';
-  remainingTodayView.textContent = fmt(state.dayBudget - state.spentToday) + ' ₽';
+  dayBudgetView.textContent = fmt(state.dayBudget) + ' Б̶';
+  remainingTodayView.textContent = fmt(state.dayBudget - state.spentToday) + ' Б̶';
 
   daysLeftView.textContent = state.daysLeft;
   const daysRatio = state.totalDays > 0 ? state.daysLeft/state.totalDays : 0;
@@ -228,22 +251,24 @@ function renderExpenses(){
   vbarMaxLabel.textContent = state.totalDays;
   vbarFill.style.height = (daysRatio*100) + '%';
 
-  sumSpentView.textContent = fmt(state.totalSpentAll) + ' ₽';
-  const remainingAll = state.totalAmount - state.totalSpentAll;
-  sumRemainingView.textContent = fmt(remainingAll) + ' ₽';
+  const spentIncludingToday = state.totalSpentAll + state.spentToday;
+  sumSpentView.textContent = fmt(spentIncludingToday) + ' Б̶';
+  const remainingAll = state.totalAmount - spentIncludingToday;
+  sumRemainingView.textContent = fmt(remainingAll) + ' Б̶';
   sumDaysPassedView.textContent = state.daysPassed;
 
   renderGoal();
 }
 
 btnApplyPlan.addEventListener('click', ()=>{
-  const days = parseFloat(inputDays.value) || 1;
-  const total = parseFloat(inputTotal.value) || 0;
+  const days = parseNum(inputDays.value) || 1;
+  const total = parseNum(inputTotal.value) || 0;
   state.totalDays = days;
   state.totalAmount = total;
   state.daysLeft = days;
   state.baseRate = total/days; // фиксированный лимит на день, не меняется до нового плана
   state.dayBudget = state.baseRate;
+  state.planEndTimestamp = Date.now() + days*24*60*60*1000;
   state.spentToday = 0;
   state.totalSpentAll = 0;
   state.daysPassed = 0;
@@ -254,7 +279,7 @@ btnApplyPlan.addEventListener('click', ()=>{
 const btnAddSpent = document.getElementById('btnAddSpent');
 
 btnAddSpent.addEventListener('click', ()=>{
-  const amount = parseFloat(inputSpentToday.value);
+  const amount = parseNum(inputSpentToday.value);
   if(!amount || amount<=0) return;
   state.spentToday += amount;
   inputSpentToday.value = '';
@@ -329,7 +354,7 @@ function renderGoal(){
 }
 
 btnSetGoal.addEventListener('click', ()=>{
-  const val = parseFloat(inputGoalTarget.value);
+  const val = parseNum(inputGoalTarget.value);
   if(!val || val<=0) return;
   state.goalTarget = val;
   inputGoalTarget.value = '';
@@ -338,7 +363,7 @@ btnSetGoal.addEventListener('click', ()=>{
 });
 
 btnAddContribution.addEventListener('click', ()=>{
-  const amount = parseFloat(inputContribution.value);
+  const amount = parseNum(inputContribution.value);
   if(!amount || amount<=0) return;
   const today = new Date();
   const dateStr = today.toLocaleDateString('ru-RU');
@@ -597,7 +622,7 @@ function renderCig(){
 
   inputCigPrice.value = cig.price || '';
 
-  cigBalanceView.textContent = fmt(cig.balance) + ' ₽';
+  cigBalanceView.textContent = fmt(cig.balance) + ' Б̶';
   cigBalanceView.classList.remove('positive','negative');
   if(cig.balance > 0){ cigBalanceView.classList.add('positive'); cigBalanceSub.textContent = 'накоплено'; }
   else if(cig.balance < 0){ cigBalanceView.classList.add('negative'); cigBalanceSub.textContent = 'потрачено сверху'; }
@@ -616,7 +641,7 @@ function renderCig(){
 }
 
 btnSetCigPrice.addEventListener('click', ()=>{
-  const price = parseFloat(inputCigPrice.value) || 0;
+  const price = parseNum(inputCigPrice.value) || 0;
   state.cig.price = price;
   saveState();
   renderCig();

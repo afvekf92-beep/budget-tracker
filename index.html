@@ -57,8 +57,8 @@
 
           <label class="field-label">Общая сумма на эти дни</label>
           <div class="input-row">
-            <input type="number" id="inputTotal" min="0" value="170">
-            <span class="suffix">₽</span>
+            <input type="number" id="inputTotal" min="0" step="0.01" value="170">
+            <span class="suffix">Б̶</span>
           </div>
 
           <button class="btn-secondary" id="btnApplyPlan">Применить план</button>
@@ -67,19 +67,19 @@
 
           <div class="stat-block">
             <span class="stat-label">Сумма на день</span>
-            <span class="stat-value" id="dayBudgetView">0 ₽</span>
+            <span class="stat-value" id="dayBudgetView">0 Б̶</span>
           </div>
 
           <label class="field-label">Сколько потратил (внеси покупку)</label>
           <div class="input-row">
-            <input type="number" id="inputSpentToday" min="0" placeholder="0">
-            <span class="suffix">₽</span>
+            <input type="number" id="inputSpentToday" min="0" step="0.01" placeholder="0">
+            <span class="suffix">Б̶</span>
           </div>
           <button class="btn-secondary" id="btnAddSpent">Добавить трату</button>
 
           <div class="stat-block">
             <span class="stat-label">Осталось на день</span>
-            <span class="stat-value accent" id="remainingTodayView">0 ₽</span>
+            <span class="stat-value accent" id="remainingTodayView">0 Б̶</span>
           </div>
 
           <button class="btn-primary" id="btnEndDay">День закончился</button>
@@ -99,6 +99,7 @@
                 <span class="ring-label">дней</span>
               </div>
             </div>
+            <p class="goal-sub" id="planTimerView">—</p>
           </div>
 
           <div class="card">
@@ -128,7 +129,7 @@
             </div>
             <p class="goal-sub" id="goalProgressText">0 / 5000 € · 0%</p>
             <div class="input-row small-row">
-              <input type="number" id="inputGoalTarget" placeholder="Изменить цель (€)">
+              <input type="number" id="inputGoalTarget" step="0.01" placeholder="Изменить цель (€)">
               <button class="btn-secondary small" id="btnSetGoal">OK</button>
             </div>
           </div>
@@ -137,7 +138,7 @@
             <h2>Пополнения</h2>
             <div id="contributionsList" class="list"></div>
             <div class="input-row">
-              <input type="number" id="inputContribution" placeholder="Сумма пополнения" min="0">
+              <input type="number" id="inputContribution" placeholder="Сумма пополнения" min="0" step="0.01">
               <span class="suffix">€</span>
             </div>
             <button class="btn-primary" id="btnAddContribution">Добавить</button>
@@ -149,11 +150,11 @@
       <div class="card summary-card">
         <div class="summary-item">
           <span class="stat-label">Потрачено всего</span>
-          <span class="stat-value" id="sumSpentView">0 ₽</span>
+          <span class="stat-value" id="sumSpentView">0 Б̶</span>
         </div>
         <div class="summary-item">
           <span class="stat-label">Осталось всего</span>
-          <span class="stat-value accent" id="sumRemainingView">0 ₽</span>
+          <span class="stat-value accent" id="sumRemainingView">0 Б̶</span>
         </div>
         <div class="summary-item">
           <span class="stat-label">Дней пройдено</span>
@@ -228,8 +229,8 @@
         <div class="card">
           <h2>Цена пачки</h2>
           <div class="input-row">
-            <input type="number" id="inputCigPrice" min="0" placeholder="0">
-            <span class="suffix">₽</span>
+            <input type="number" id="inputCigPrice" min="0" step="0.01" placeholder="0">
+            <span class="suffix">Б̶</span>
           </div>
           <button class="btn-secondary" id="btnSetCigPrice">Сохранить цену</button>
 
@@ -247,7 +248,7 @@
 
         <div class="card center-card">
           <h2>Баланс</h2>
-          <div class="cig-balance" id="cigBalanceView">0 ₽</div>
+          <div class="cig-balance" id="cigBalanceView">0 Б̶</div>
           <p class="goal-sub" id="cigBalanceSub">накоплено / потрачено</p>
 
           <hr style="width:100%;">
