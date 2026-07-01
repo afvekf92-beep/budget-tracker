@@ -12,7 +12,7 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const ACCENT_RGB = '139,92,246'; // фиолетовый --c-purple
+const ACCENT_RGB = '124,252,154'; // совпадает с --accent в style.css
 
 const FIREFLIES_COUNT = 5;
 let fireflies = [];
