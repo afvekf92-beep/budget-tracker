@@ -12,7 +12,7 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const ACCENT_RGB = '124,252,154'; // совпадает с --accent в style.css
+const ACCENT_RGB = '139,92,246'; // фиолетовый --c-purple
 
 const FIREFLIES_COUNT = 5;
 let fireflies = [];
@@ -79,6 +79,7 @@ drawBackground();
 let firebaseApp, db, docRef, backupRef;
 let currentSyncCode = null;
 let syncReady = false;
+let dataLoaded = false; // флаг: данные из облака уже получены
 let isApplyingRemoteUpdate = false;
 let saveTimeout = null;
 
@@ -124,6 +125,9 @@ function connectWithCode(code){
   backupRef = db.collection('budgetAppBackups').doc(code);
   localStorage.setItem('syncCode', code);
 
+  setUILocked(true); // блокируем кнопки пока данные не загружены
+  btnSyncStatus.textContent = '☁ загрузка...';
+
   docRef.onSnapshot(snap=>{
     if(snap.exists){
       isApplyingRemoteUpdate = true;
@@ -136,19 +140,40 @@ function connectWithCode(code){
       // документа ещё нет — создаём с текущим (стартовым) состоянием
       docRef.set(state);
     }
+
+    if(!dataLoaded){
+      dataLoaded = true;
+      setUILocked(false); // разблокируем кнопки только после первой загрузки
+    }
+
     syncReady = true;
     btnSyncStatus.textContent = '☁ ' + code;
     syncOverlay.classList.remove('show');
   }, err=>{
     syncStatus.textContent = 'Ошибка подключения: ' + err.message;
+    setUILocked(false); // разблокируем при ошибке чтобы не завис
   });
 }
 
 function saveState(){
-  if(isApplyingRemoteUpdate) return; // не отправляем то, что только что пришло из облака
+  if(isApplyingRemoteUpdate) return;
   if(!docRef) return;
+  if(!dataLoaded) return; // НЕ сохраняем пока данные из облака не загружены
   docRef.set(state).catch(err=>{
     console.error('Ошибка сохранения в облако:', err);
+  });
+}
+
+// Блокируем все кнопки действий пока данные не загружены
+function setUILocked(locked){
+  const actionBtns = [
+    'btnApplyPlan','btnAddSpent','btnEndDay','btnAddContribution','btnSetGoal',
+    'btnSetCigPrice','btnCigNotBought','btnCigClaim','btnCigRelapse',
+    'btnResetExpenses','btnResetHabits','btnResetCig','btnRestoreBackup'
+  ];
+  actionBtns.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.disabled = locked; el.style.opacity = locked ? '0.4' : ''; }
   });
 }
 
