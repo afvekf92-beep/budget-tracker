@@ -22,7 +22,7 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const ACCENT_RGB = '139,92,246'; // фиолетовый --c-purple
+const ACCENT_RGB = '233,196,106'; // золотой --gold
 
 const FIREFLIES_COUNT = 5;
 let fireflies = [];
@@ -104,14 +104,6 @@ const defaultState = {
   daysPassed: 0,
   goalTarget: 5000,
   contributions: [],
-  habits: [],
-  cig: {
-    price: 0,
-    balance: 0,
-    streak: 0,
-    bestStreak: 0,
-    cycleCount: 0
-  }
 };
 
 let state = JSON.parse(JSON.stringify(defaultState));
@@ -143,8 +135,6 @@ function connectWithCode(code){
       isApplyingRemoteUpdate = true;
       state = { ...defaultState, ...snap.data() };
       renderExpenses();
-      renderHabits();
-      renderCig();
       isApplyingRemoteUpdate = false;
     } else {
       // документа ещё нет — создаём с текущим (стартовым) состоянием
@@ -391,173 +381,6 @@ btnAddContribution.addEventListener('click', ()=>{
 });
 
 
-/* ============================================================
-   СТРАНИЦА «ПРИВЫЧКИ»
-   ============================================================ */
-const habitsGrid = document.getElementById('habitsGrid');
-const habitsRing = document.getElementById('habitsRing');
-const habitsPercentView = document.getElementById('habitsPercentView');
-const habitsTotalView = document.getElementById('habitsTotalView');
-const habitsDoneView = document.getElementById('habitsDoneView');
-const habitsMissedView = document.getElementById('habitsMissedView');
-const habitsStreakView = document.getElementById('habitsStreakView');
-
-const ICONS = {
-  run: '🏃', book: '📖', meditate: '🧘', plan: '📋',
-  gym: '🏋️', water: '💧', learn: '🎓', sun: '🌅'
-};
-
-function todayStr(){
-  return new Date().toISOString().slice(0,10); // YYYY-MM-DD
-}
-
-// Понедельник той недели, в которую попадает дата (ключ недели)
-function weekKeyOf(dateInput){
-  const d = new Date(dateInput);
-  const dayIdx = (d.getDay() + 6) % 7; // 0 = понедельник
-  d.setDate(d.getDate() - dayIdx);
-  return d.toISOString().slice(0,10);
-}
-
-// Считаем, сколько раз привычка выполнена в каждой неделе,
-// и сколько недель ПОДРЯД цель (weeklyTarget) была достигнута.
-function calcWeeklyStats(habit){
-  const target = habit.weeklyTarget || 7;
-  const counts = {};
-  habit.completedDates.forEach(ds=>{
-    const wk = weekKeyOf(ds);
-    counts[wk] = (counts[wk]||0) + 1;
-  });
-
-  const currentWeekKey = weekKeyOf(new Date());
-  const currentWeekCount = counts[currentWeekKey] || 0;
-
-  // серия в неделях: идём от последней ПОЛНОСТЬЮ завершённой недели назад,
-  // пока цель выполняется. Текущая (ещё не закончившаяся) неделя не может
-  // сломать серию — она только может добавить +1, если цель уже достигнута.
-  let streakWeeks = 0;
-  let cursor = new Date(currentWeekKey);
-  cursor.setDate(cursor.getDate() - 7); // предыдущая неделя
-  while(true){
-    const wk = weekKeyOf(cursor);
-    const count = counts[wk] || 0;
-    if(count >= target){
-      streakWeeks++;
-      cursor.setDate(cursor.getDate() - 7);
-    } else {
-      break;
-    }
-  }
-  if(currentWeekCount >= target) streakWeeks++;
-
-  return { streakWeeks, currentWeekCount, target };
-}
-
-let currentFilter = 'all';
-
-function renderHabits(){
-  const today = todayStr();
-  habitsGrid.innerHTML = '';
-
-  const filtered = state.habits.filter(h => currentFilter==='all' || h.time===currentFilter);
-
-  if(filtered.length === 0){
-    habitsGrid.innerHTML = '<div class="list-empty" style="grid-column:1/-1;">Нет привычек в этой категории. Добавьте новую ниже 👇</div>';
-  }
-
-  filtered.forEach(habit=>{
-    const doneToday = habit.completedDates.includes(today);
-    const { streakWeeks, currentWeekCount, target } = calcWeeklyStats(habit);
-    const card = document.createElement('div');
-    card.className = 'habit-card';
-
-    const ratio = Math.min(1, currentWeekCount/target);
-    const offset = RING_CIRCUMFERENCE * (1-ratio);
-
-    card.innerHTML = `
-      <button class="habit-delete" data-id="${habit.id}" title="Удалить">✕</button>
-      <div class="habit-card-head">
-        <span>${habit.name}</span>
-        <span class="habit-check ${doneToday?'done':''}" data-id="${habit.id}">${doneToday?'✓':''}</span>
-      </div>
-      <div class="habit-icon-ring">
-        <svg viewBox="0 0 120 120">
-          <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
-          <circle class="ring-fg" style="stroke-dasharray:${RING_CIRCUMFERENCE}; stroke-dashoffset:${offset}" cx="60" cy="60" r="52"></circle>
-        </svg>
-        <div class="habit-icon-symbol">${ICONS[habit.icon]||'⭐'}</div>
-      </div>
-      <div class="habit-streak ${streakWeeks===0?'zero':''}">${streakWeeks} ${streakWeeks===1?'неделя':'нед.'} подряд</div>
-      <div class="habit-sub">${currentWeekCount} из ${target} на этой неделе</div>
-      <div class="habit-meta">${target} раз/нед · ${labelForTime(habit.time)}</div>
-    `;
-    habitsGrid.appendChild(card);
-  });
-
-  // обработчики чекбоксов и удаления
-  habitsGrid.querySelectorAll('.habit-check').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const id = el.dataset.id;
-      toggleHabitToday(id);
-    });
-  });
-  habitsGrid.querySelectorAll('.habit-delete').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const id = el.dataset.id;
-      if(confirm('Удалить эту привычку?')){
-        state.habits = state.habits.filter(h=>h.id!==id);
-        saveState();
-        renderHabits();
-        renderHabitsStats();
-      }
-    });
-  });
-
-  renderHabitsStats();
-  renderCalendar();
-}
-
-function labelForTime(t){
-  return {morning:'Утро', afternoon:'День', evening:'Вечер'}[t] || '';
-}
-
-function toggleHabitToday(id){
-  const habit = state.habits.find(h=>h.id===id);
-  if(!habit) return;
-  const today = todayStr();
-  const idx = habit.completedDates.indexOf(today);
-  if(idx>=0) habit.completedDates.splice(idx,1);
-  else habit.completedDates.push(today);
-  saveState();
-  renderHabits();
-}
-
-function renderHabitsStats(){
-  const total = state.habits.length;
-  const today = todayStr();
-  const done = state.habits.filter(h=>h.completedDates.includes(today)).length;
-  const missed = total - done;
-  const pct = total>0 ? Math.round((done/total)*100) : 0;
-  const bestStreak = state.habits.reduce((m,h)=>Math.max(m, calcWeeklyStats(h).streakWeeks), 0);
-
-  habitsTotalView.textContent = total;
-  habitsDoneView.textContent = done;
-  habitsMissedView.textContent = missed;
-  habitsStreakView.textContent = bestStreak;
-  habitsPercentView.textContent = pct + '%';
-  habitsRing.style.strokeDashoffset = RING_CIRCUMFERENCE * (1-pct/100);
-}
-
-document.querySelectorAll('.filter-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
-    renderHabits();
-  });
-});
-
-
 /* ===== Модалка добавления привычки ===== */
 const habitModalOverlay = document.getElementById('habitModalOverlay');
 const btnAddHabit = document.getElementById('btnAddHabit');
@@ -587,7 +410,6 @@ btnSaveHabit.addEventListener('click', ()=>{
   });
   saveState();
   habitModalOverlay.classList.remove('show');
-  renderHabits();
 });
 
 
@@ -642,86 +464,6 @@ function renderCalendar(){
 
 
 /* ============================================================
-   СТРАНИЦА «ЭКОНОМИЯ НА СИГАРЕТАХ»
-   ============================================================ */
-const inputCigPrice = document.getElementById('inputCigPrice');
-const btnSetCigPrice = document.getElementById('btnSetCigPrice');
-const cigBalanceView = document.getElementById('cigBalanceView');
-const cigBalanceSub = document.getElementById('cigBalanceSub');
-const btnCigNotBought = document.getElementById('btnCigNotBought');
-const btnCigClaim = document.getElementById('btnCigClaim');
-const cigCycleText = document.getElementById('cigCycleText');
-const cigStreakView = document.getElementById('cigStreakView');
-const cigBestStreakView = document.getElementById('cigBestStreakView');
-const cigRing = document.getElementById('cigRing');
-const cigStreakRingView = document.getElementById('cigStreakRingView');
-
-const CIG_GOAL_DAYS = 30;
-const CIG_CYCLE_DAYS = 3;
-
-function renderCig(){
-  if(!state.cig) state.cig = {price:0, balance:0, streak:0, bestStreak:0, cycleCount:0};
-  const cig = state.cig;
-  if(cig.cycleCount === undefined) cig.cycleCount = 0;
-
-  inputCigPrice.value = cig.price || '';
-
-  cigBalanceView.textContent = fmt(cig.balance);
-  cigBalanceView.classList.remove('positive','negative');
-  if(cig.balance > 0){ cigBalanceView.classList.add('positive'); cigBalanceSub.textContent = 'накоплено'; }
-  else if(cig.balance < 0){ cigBalanceView.classList.add('negative'); cigBalanceSub.textContent = 'потрачено сверху'; }
-  else { cigBalanceSub.textContent = 'накоплено / потрачено'; }
-
-  cigStreakView.textContent = cig.streak + (cig.streak===1 ? ' день' : ' дней');
-  cigBestStreakView.textContent = cig.bestStreak + (cig.bestStreak===1 ? ' день' : ' дней');
-  cigStreakRingView.textContent = cig.streak;
-
-  const ratio = Math.min(1, cig.streak / CIG_GOAL_DAYS);
-  cigRing.style.strokeDashoffset = RING_CIRCUMFERENCE * (1-ratio);
-
-  const cycleShown = Math.min(cig.cycleCount, CIG_CYCLE_DAYS);
-  cigCycleText.textContent = `День ${cycleShown} из ${CIG_CYCLE_DAYS}`;
-  btnCigClaim.disabled = cig.cycleCount < CIG_CYCLE_DAYS;
-}
-
-btnSetCigPrice.addEventListener('click', ()=>{
-  const price = parseNum(inputCigPrice.value) || 0;
-  state.cig.price = price;
-  saveState();
-  renderCig();
-});
-
-btnCigNotBought.addEventListener('click', ()=>{
-  state.cig.cycleCount += 1;
-  state.cig.streak += 1;
-  if(state.cig.streak > state.cig.bestStreak) state.cig.bestStreak = state.cig.streak;
-  saveState();
-  renderCig();
-});
-
-btnCigClaim.addEventListener('click', ()=>{
-  if(state.cig.cycleCount < CIG_CYCLE_DAYS) return;
-  const price = state.cig.price || 0;
-  state.cig.balance += price;
-  state.cig.cycleCount = 0;
-  saveState();
-  renderCig();
-});
-
-const btnCigRelapse = document.getElementById('btnCigRelapse');
-btnCigRelapse.addEventListener('click', ()=>{
-  const sure = confirm('Отметить срыв? Баланс, текущая серия и цикл сбросятся в 0. Лучшая серия и цена пачки останутся.');
-  if(!sure) return;
-  state.cig.balance = 0;
-  state.cig.streak = 0;
-  state.cig.cycleCount = 0;
-  // state.cig.bestStreak и state.cig.price не трогаем
-  saveState();
-  renderCig();
-});
-
-
-/* ============================================================
    СБРОС ПРОГРЕССА ПО СТРАНИЦАМ (с защитой и автобэкапом)
    ============================================================ */
 const btnResetExpenses = document.getElementById('btnResetExpenses');
@@ -745,8 +487,6 @@ btnRestoreBackup.addEventListener('click', async ()=>{
     state = { ...defaultState, ...backup };
     saveState();
     renderExpenses();
-    renderHabits();
-    renderCig();
     alert('Все данные восстановлены из бэкапа.');
   }catch(e){
     alert('Не удалось получить резервную копию: ' + e.message);
@@ -802,7 +542,6 @@ btnResetHabits.addEventListener('click', async ()=>{
 
   state.habits = [];
   saveState();
-  renderHabits();
   alert('Привычки сброшены.');
 });
 
@@ -812,7 +551,6 @@ btnResetCig.addEventListener('click', async ()=>{
 
   state.cig = JSON.parse(JSON.stringify(defaultState.cig));
   saveState();
-  renderCig();
   alert('Счётчик сигарет сброшен.');
 });
 
@@ -822,5 +560,3 @@ btnResetCig.addEventListener('click', async ()=>{
    пока не подключилась синхронизация)
    ============================================================ */
 renderExpenses();
-renderHabits();
-renderCig();
