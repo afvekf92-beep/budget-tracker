@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Контроль расходов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="style.css">
+<!-- Telegram Mini App SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <!-- Firebase (бесплатная облачная база данных для синхронизации между устройствами) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -46,7 +50,7 @@
       <div class="grid">
 
         <!-- Планирование -->
-        <div class="card">
+        <div class="card c-orange">
           <h2>Планирование</h2>
 
           <label class="field-label">Количество дней</label>
@@ -87,7 +91,7 @@
 
         <!-- Дней осталось + вертикальная шкала -->
         <div class="col-mid">
-          <div class="card center-card">
+          <div class="card center-card c-blue">
             <h2>Дней осталось</h2>
             <div class="ring-wrap">
               <svg viewBox="0 0 120 120" class="ring">
@@ -114,7 +118,7 @@
 
         <!-- Главная цель + пополнения -->
         <div class="col-right">
-          <div class="card center-card">
+          <div class="card center-card c-purple">
             <h2>Главная цель</h2>
             <div class="ring-wrap">
               <svg viewBox="0 0 120 120" class="ring">
@@ -245,7 +249,7 @@
           </div>
         </div>
 
-        <div class="card center-card">
+        <div class="card center-card c-teal">
           <h2>Баланс</h2>
           <div class="cig-balance" id="cigBalanceView">0</div>
           <p class="goal-sub" id="cigBalanceSub">накоплено / потрачено</p>
